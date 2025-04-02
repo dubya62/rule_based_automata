@@ -16,8 +16,9 @@ class Node:
     A single node for the graph.
     Allows following the graph to match strings
     """
-    def __init__(self):
+    def __init__(self, replacement=None):
         self.children = {}
+        self.replacement = replacement
 
 
 class Graph:
@@ -25,7 +26,7 @@ class Graph:
     Can be executed on an input list to optimize
     """
     def __init__(self):
-        pass
+        self.head = Node()
 
     def add_clause(self, clause:Clause):
         """
@@ -35,7 +36,21 @@ class Graph:
         # check if this creates a circular rule
 
         # add required nodes
-        pass
+        current_node = self.head
+        for i, x in enumerate(clause.content):
+            print(f"--- : {x} ")
+            if x in current_node.children:
+                print("Already exists")
+                current_node = current_node.children[x]
+            else:
+                print("Creating new node")
+                new_node = Node()
+                if i == len(clause.content)-1:
+                    print(f"Gave node a replacement of {clause.replacement}")
+                    new_node.replacement = clause.replacement
+
+                current_node.children[x] = new_node
+                current_node = new_node
 
     def execute(self, tokens:list[str]):
         """
