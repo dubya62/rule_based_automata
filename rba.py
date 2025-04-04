@@ -187,6 +187,43 @@ class Parser:
 
         return result
 
+    
+class Optimizer:
+    """
+    Optimizes a list of tokens using the graph
+    """
+    def __init__ (self, graph:Graph): 
+        self.graph = graph 
+    def optimize(self, tokens:list[str]):
+        """
+        Optimize the list of tokens using the graph 
+        """
+        # start at each token
+        # follow the graph down as far as possible 
+        # if there is a replacement, replace the tokens 
+        # return the optimized list of tokens 
+        # if there are no replacements, return the original list of tokens 
+        # return None
+        for i in range(len(tokens)):
+            current_node = self.graph.head 
+            j = i 
+            while j < len(tokens):
+                if tokens[j] in current_node.children:
+                    current_node = current_node.children[tokens[j]]
+                    j += 1
+                    end = j
+                else:
+                    break
+            if current_node.replacement:
+                # replace the tokens with the replacement
+                replacement = current_node.replacement.content
+                tokens = tokens[:i] + replacement + tokens[end:]
+                return tokens
+        # if there are no replacements, return the original list of tokens
+        print("No replacements made")
+        print(tokens) 
+        
+        return None 
 
 if __name__ == "__main__":
     parser = Parser(["test.rbe"], -1, 0)
