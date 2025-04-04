@@ -27,3 +27,11 @@
         * If you reach the head of the tree and there is no replacement, continue to the next starting point
         * If there is ever a replacement, replace the matched tokens with the replacement and move the starting index to after the replacement's end
     5. If there were any replacements made in the list, rerun through the list again (back to step 2)
+
+## New Syntax
+```
+. - Match any token
+* - Repeat this token 0 or more times
+$ - variable access (when replacement is made, replace with whatever is contained in this variable)
+# - internal variable (when replacement is made, renumber to prevent conflicts)
+```
