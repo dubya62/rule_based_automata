@@ -2,6 +2,7 @@
 import math
 
 
+# TODO: add state for special syntax
 class Clause:
     """
     A single clause of information to be added to the graph
@@ -33,9 +34,10 @@ class Graph:
         Add a clause object to the graph while handling circular rules
         """
         print("Adding clause...")
-        # check if this creates a circular rule
+        # TODO: check if this creates a circular rule
 
         # add required nodes
+        # TODO: account for special syntax
         current_node = self.head
         for i, x in enumerate(clause.content):
             print(f"--- : {x} ")
@@ -52,12 +54,13 @@ class Graph:
                 current_node.children[x] = new_node
                 current_node = new_node
 
+
     def execute(self, tokens:list[str]):
         """
         Execute the current graph on a list of strings
         """
-        # recursively match against nodes for the forward pass
-        # check if replacement is available for backward pass
+        # TODO: recursively match against nodes for the forward pass
+        # TODO: check if replacement is available for backward pass
         return None
 
 
@@ -100,6 +103,8 @@ class Parser:
 
         quotes = 0
         backslashes = 0
+
+        # TODO: Special syntax
 
         i = 0
         n = len(file_data)
