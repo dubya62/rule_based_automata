@@ -12,6 +12,30 @@ class Clause:
         self.replacement:Clause = None
         self.metric:float = 0.0
 
+        # variable mappings
+        # example: [None, 1, None, 2]
+        self.internal_variables = [None] * len(self.content)
+        self.variables = [None] * len(self.content)
+
+    def handle_mappings(self):
+        self.internal_variables = [None] * len(self.content)
+        self.variables = [None] * len(self.content)
+
+        i = 0
+        n = len(self.content)
+        while i < n:
+            m = len(self.content[i]) - 1
+            while m > 0:
+                if self.content[i][m] == "$":
+                    self.variables[i] = int(self.content[i][m+1:])
+                    self.content[i] = self.content[:m]
+                elif self.content[i][m] == "#":
+                    self.internal_variables[i] = int(self.content[i][m+1:])
+                    self.content[i] = self.content[:m]
+                m -= 1
+            i += 1
+
+
 class Node:
     """
     A single node for the graph.
@@ -188,6 +212,7 @@ class Parser:
 
         print("Adding all clauses")
         for clause in all_clauses:
+            clause.handle_mappings()
             result.add_clause(clause)
 
         return result
