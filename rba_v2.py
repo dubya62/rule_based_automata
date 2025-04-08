@@ -83,55 +83,50 @@ class Graph:
                 print(f"Starting at token index {i}: {tokens[i]}")
             
                 # 3. follow down the tree as far as possible, consuming as many tokens as possible 
-                current_node = self.head # start at the head of the graph 
-                j = i 
-            
-            while j < len(tokens) and tokens[j] in current_node.children: # while there are children to follow 
-                print(f"Matched token '{tokens[j]}' at index {j}") 
-                current_node = current_node.children[tokens[j]] # move to the next node
-                print(f"Current node replacement: {current_node.replacement}")
-                j += 1 
+                def match_forward(node, token_index, path):
+                    if token_index >= len(tokens):
+                        return path
+                    if tokens[token_index] in node.children:
+                        next_node = node.children[tokens[token_index]]
+                        path.append(next_node)
+                        return match_forward(next_node, token_index + 1, path)
+                    return path
                 
-            # recursively match against nodes for the forward pass
-            def match_forward(node, token_index): # recursive function to match forward 
-                if token_index >= len(tokens):
-                    return node if node.replacement else None
-                if tokens[token_index] in node.children:
-                    return match_forward(node.children[tokens[token_index]], token_index + 1)
-                return node if node.replacement else None
+                # start matching/tracking path from head node 
+                path = [self.head]
+                path = match_forward(self.head, i, path)
             
-            matched_node = match_forward(self.head, i)
+                def match_backward(path):
+                    # check if there is a replacement at the current node if not, go back up the graph by 1 node
+                    for node in reversed(path):
+                        if node.replacement:
+                            return node
+                    return None 
             
-            # check if replacement is available for backward pass
-            def match_backward(node):
-                while node and not node.replacement:
-                    node = node.replacement
-                return node
+                matched_node = match_backward(path) 
             
-            if matched_node:
-                current_node = match_backward(matched_node)
-            
-            # 4. Once out of matches or reaching the end of the input string, see if there is a replacement at the current node 
-            if current_node and current_node.replacement:
-                print(f"Replacement found: {current_node.replacement.content}")
+                if matched_node: 
+                    # determine the start and end of the matched tokens 
+                    j = i + len(path) - 1
+                    print(f"Replacement found: {matched_node.replacement.content}")
+                    
+                    replacement = matched_node.replacement.content
+                    tokens = tokens[:i] + replacement + tokens[j:]
+                    print(f"Tokens after replacement: {tokens}")
+                    
+                    # move the starting index to after the replacement's end 
+                    i = i + len(replacement)
+                    modified = True 
+                    
+                else: 
+                    print("No replacement found, moving to next token")
+                    i += 1
                 
-                # replace the tokens in the list with the replacement
-                replacement = current_node.replacement.content
-                tokens = tokens[:i] + replacement + tokens[j:]
-                print(f"Tokens after replacement: {tokens}")
-                
-                # move the starting index to after the replacement's end 
-                i = i + len(replacement)
-                modified = True
-            else:
-                print("No replacement found, moving to next token")
-                i += 1
-            
-            # 5. If there were any replacements made in the list, rerun through the list again (back to step 2)
+            # 5. if there were any replacements made in the list, rerun through the list again (back to step 2)
             if not modified:
                 print("No modifications made in this pass, exiting")
                 break
-        
+            
         return tokens
 
 
@@ -264,3 +259,8 @@ class Parser:
 
 if __name__ == "__main__":
     parser = Parser(["test.rbe"], -1, 0)   
+    # test the graph 
+    tokens = ["a", "b", "c", "d", "e"]
+    print("Tokens before execution: ", tokens) 
+    result = parser.graph.execute(tokens)
+    print("Tokens after execution: ", result)
