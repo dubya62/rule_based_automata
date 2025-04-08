@@ -81,28 +81,37 @@ class Graph:
             
             while i < len(tokens):
                 print(f"Starting at token index {i}: {tokens[i]}")
+            
                 # 3. follow down the tree as far as possible, consuming as many tokens as possible 
                 current_node = self.head 
                 j = i 
+            
+            while j < len(tokens) and tokens[j] in current_node.children:
+                print(f"Matched token '{tokens[j]}' at index {j}")
+                current_node = current_node.children[tokens[j]]
+                j += 1 
                 
-                while j < len(tokens) and tokens[j] in current_node.children:
-                    print(f"Matched token '{tokens[j]}' at index {j}")
-                    current_node = current_node.children[tokens[j]]
-                    j += 1 
-                    
+            # recursively match against nodes for the forward pass
+            def match_forward(node, token_index):
+                if token_index >= len(tokens):
+                    return node if node.replacement else None
+                if tokens[token_index] in node.children:
+                    return match_forward(node.children[tokens[token_index]], token_index + 1)
+                return node if node.replacement else None
+            
+            matched_node = match_forward(self.head, i)
+            
+            # check if replacement is available for backward pass
+            def match_backward(node):
+                while node and not node.replacement:
+                    node = node.replacement
+                return node
+            
+            if matched_node:
+                current_node = match_backward(matched_node)
+            
             # 4. Once out of matches or reaching the end of the input string, see if there is a replacement at the current node 
-            # 4a.While there is no replacement at the current node, go back up the graph by 1 node
-            while current_node != None and current_node.replacement == None:
-                print(f"No replacement at current node, moving up")
-                current_node = current_node.replacement 
-                
-                # 4b. If you reach the head of the tree and there is no replacement, continue to the next starting point
-                if current_node == self.head:
-                    print("Reached the head of the tree, no replacement found")
-                    break
-                
-            # 4c. If there is ever a replacement, replace the matched tokens with the replacement and move the starting index to after the replacement's end
-            if current_node != None and current_node.replacement != None: 
+            if current_node and current_node.replacement:
                 print(f"Replacement found: {current_node.replacement.content}")
                 
                 # replace the tokens in the list with the replacement
@@ -113,12 +122,14 @@ class Graph:
                 # move the starting index to after the replacement's end 
                 i = i + len(replacement)
                 modified = True
+            else:
+                print("No replacement found, moving to next token")
+                i += 1
             
-            i += 1
             # 5. If there were any replacements made in the list, rerun through the list again (back to step 2)
             if not modified:
                 print("No modifications made in this pass, exiting")
-                break
+            break
         
         return tokens
 
@@ -249,46 +260,6 @@ class Parser:
 
         return result
 
-    
-class Optimizer:
-    """
-    Optimizes a list of tokens using the graph
-    """
-    def __init__ (self, graph:Graph): 
-        self.graph = graph 
-    def optimize(self, tokens:list[str]):
-        """
-        Optimize the list of tokens using the graph 
-        """
-        # start at each token
-        # follow the graph down as far as possible 
-        # if there is a replacement, replace the tokens 
-        # return the optimized list of tokens 
-        # if there are no replacements, return the original list of tokens 
-        # return None
-        for i in range(len(tokens)):
-            current_node = self.graph.head 
-            j = i 
-            while j < len(tokens):
-                if tokens[j] in current_node.children:
-                    current_node = current_node.children[tokens[j]]
-                    j += 1
-                    end = j
-                else:
-                    break
-            if current_node.replacement:
-                # replace the tokens with the replacement
-                replacement = current_node.replacement.content
-                tokens = tokens[:i] + replacement + tokens[end:]
-                return tokens
-        # if there are no replacements, return the original list of tokens
-        print("No replacements made")
-        print(tokens) 
-        
-        return None 
 
 if __name__ == "__main__":
-    parser = Parser(["test.rbe"], -1, 0)
-
-
-
+    parser = Parser(["test.rbe"], -1, 0)   
