@@ -219,10 +219,10 @@ class Parser:
                         best = current_rule[0]
                         for clause in current_rule:
                             if self.direction > 0:
-                                if clause.metric > best.metric:
+                                if clause.metric < best.metric:
                                     best = clause
                             else:
-                                if clause.metric < best.metric:
+                                if clause.metric > best.metric:
                                     best = clause
 
                         for clause in current_rule:
