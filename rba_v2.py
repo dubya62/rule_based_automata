@@ -38,23 +38,29 @@ class Graph:
         visited = set()  # to track visited nodes
         check = clause.replacement  # start with the replacement clause
         original = tuple(clause.content)  # original content of the clause
+        
         print(f"Checking for circular rule in clause: {clause.content}")
+        
+        # check for circular rules 
         while check is not None:  # while there are replacements to check
             rep_content = tuple(check.content)  # get the content of the replacement clause
             print(f"Current replacement content: {rep_content}")
+            
             if rep_content == original:  # if the replacement content is the same as the original content, we have a circular rule
-                print(f"Detected circular rule for clause: {clause.content}")
-                # Do not add to graph
+                print(f"[Circular Check] Detected circular rule for clause: {clause.content} --> {rep_content}")
+                # do not add to graph
                 return
 
             # prevents infinite loops
             if rep_content in visited:
-                print(f"Already visited replacement content: {rep_content}, breaking loop")
+                print(f"[Circular Check] Already visited replacement content: {rep_content}, breaking loop")
                 break
 
-            print(f"Adding {rep_content} to visited set")
+            print(f"[Circular Check] Adding {rep_content} to visited set")
             visited.add(rep_content)
             check = check.replacement
+            
+        print(f"[Circular Check] No circular rule detected for clause: {clause.content}") 
 
         # add required nodes
         current_node = self.head
@@ -267,14 +273,16 @@ class Parser:
 if __name__ == "__main__":
     parser = Parser(["test.rbe"], -1, 0)   
     # test the graph 
+    print("\nTesting graph...")
     tokens = ["a", "b", "c", "d", "e"]
     print("Tokens before execution: ", tokens) 
     result = parser.graph.execute(tokens)
     print("Tokens after execution: ", result)
     
     # test the circular rule 
+    print("\nChecking for circular rule...")
     circular_rule = Clause()
     circular_rule.content = ["a", "b", "c"]
     circular_rule.replacement = circular_rule 
     parser.graph.add_clause(circular_rule)
-    print("\n   Tokens after adding circular rule: ", result)
+    print("Tokens after adding circular rule: ", result)
