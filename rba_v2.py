@@ -28,12 +28,34 @@ class Graph:
     def __init__(self):
         self.head = Node()
 
-    def add_clause(self, clause:Clause):
+    def add_clause(self, clause:Clause, circular=False):
         """
         Add a clause object to the graph while handling circular rules
         """
         print("Adding clause...")
-        # check if this creates a circular rule
+        
+        # add a new variable to function args: whether or not this is checking for circular rule: circular=False on first pass
+        if not circular: 
+            new_graph = Graph() # create a new graph 
+            
+            # create a copy of the original clause
+            new_clause = Clause()
+            new_clause.content = clause.content[:]
+            new_clause.replacement = Clause()
+            new_graph.add_clause(new_clause, circular=True)
+            # new_graph.execute(clause.replacement)
+            
+            # if the execution ever made a replacement, stop execution
+            if clause.replacement: 
+                result = new_graph.execute(clause.replacement.content[:]) # pass a copy of the content 
+                if result != clause.replacement.content: 
+                    print(f"[Circular Check] Detected circular rule for clause: {clause.content} --> {result}")
+                    print(f"[Circular Check] Not adding clause to graph: {clause.content}")
+                    # if the replacement is the same as the original content, we have a circular rule
+                    print(f"[Circular Check] Original content: {clause.content}")
+                    print(f"[Circular Check] Replacement content: {result}")
+                    # do not add to graph 
+                    return
         
         visited = set()  # to track visited nodes
         check = clause.replacement  # start with the replacement clause
