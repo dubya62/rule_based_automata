@@ -11,13 +11,52 @@ class Clause:
         self.replacement:Clause = None
         self.metric:float = 0.0
 
+        # variable mappings
+        # example: [None, 1, None, 2]
+        self.internal_variables = [None] * len(self.content)
+        self.variables = [None] * len(self.content)
+        self.repetitions = [False] * len(self.content)
+        self.any = [False] * len(self.content)
+
+
+    def handle_mappings(self):
+        self.internal_variables = [None] * len(self.content)
+        self.variables = [None] * len(self.content)
+        self.repetitions = [False] * len(self.content)
+        self.any = [False] * len(self.content)
+
+        # TODO: make backslashes escape this functionality
+        i = 0
+        n = len(self.content)
+        while i < n:
+            m = len(self.content[i]) - 1
+            while m >= 0:
+                if self.content[i][m] == "$":
+                    self.variables[i] = int(self.content[i][m+1:])
+                    self.content[i] = self.content[i][:m]
+                elif self.content[i][m] == "#":
+                    self.internal_variables[i] = int(self.content[i][m+1:])
+                    self.content[i] = self.content[i][:m]
+                elif self.content[i][m] == "*":
+                    self.repetitions[i] = True
+                    self.content[i] = self.content[i][:m]
+                elif self.content[i][m] == ".":
+                    self.any[i] = True
+                    self.content[i] = "%ANY%"
+                    break
+                m -= 1
+            i += 1
+
+
 class Node:
     """
     A single node for the graph.
     Allows following the graph to match strings
     """
-    def __init__(self, replacement=None):
+    def __init__(self, replacement=None, allow_any=False):
+        self.value = ""
         self.children = {}
+        self.repetition = False
         self.replacement = replacement
 
 
@@ -33,8 +72,10 @@ class Graph:
         Add a clause object to the graph while handling circular rules
         """
         print("Adding clause...")
+
+        # TODO: handle repetitions
+
         # check if this creates a circular rule
-        
         visited = set()  # to track visited nodes
         check = clause.replacement  # start with the replacement clause
         original = tuple(clause.content)  # original content of the clause
@@ -66,6 +107,7 @@ class Graph:
             else:
                 print("Creating new node")
                 new_node = Node()
+                new_node.value = x
                 if i == len(clause.content)-1:
                     print(f"Gave node a replacement of {clause.replacement}")
                     new_node.replacement = clause.replacement
@@ -93,7 +135,17 @@ class Graph:
                 def match_forward(node, token_index, path):
                     if token_index >= len(tokens):
                         return path
-                    if tokens[token_index] in node.children:
+                    # match with any token first
+                    if tokens[token_index] == "%ANY%":
+                        next_node = node.children[tokens[token_index]]
+                        if next_node.repetition:
+                            while token_index < len(tokens):
+                                path.append(next_node)
+                            return match_forward(next_node, token_index + 1, path)
+                        else:
+                            path.append(next_node)
+                            return match_forward(next_node, token_index + 1, path)
+                    elif tokens[token_index] in node.children:
                         next_node = node.children[tokens[token_index]]
                         path.append(next_node)
                         return match_forward(next_node, token_index + 1, path)
@@ -259,6 +311,10 @@ class Parser:
 
         print("Adding all clauses")
         for clause in all_clauses:
+            clause.handle_mappings()
+            print("CLAUSE:")
+            print(clause.content)
+            print(clause.repetitions)
             result.add_clause(clause)
 
         return result
@@ -267,7 +323,7 @@ class Parser:
 if __name__ == "__main__":
     parser = Parser(["test.rbe"], -1, 0)   
     # test the graph 
-    tokens = ["a", "b", "c", "d", "e"]
+    tokens = ["if", "it", "is", "else"]
     print("Tokens before execution: ", tokens) 
     result = parser.graph.execute(tokens)
     print("Tokens after execution: ", result)
