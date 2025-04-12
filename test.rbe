@@ -1,4 +1,4 @@
 "a"~2 = "a b"~1;
-"a b c"~1:2 = "chill guy"~2:1;
-"guy d"~1:2 = "extra chill"~2:1;
+"a b c"~2:1 = "chill guy"~1:2;
+"guy d"~2:1 = "extra chill"~1:2;
 "if else if"~3;
