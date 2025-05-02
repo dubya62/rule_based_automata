@@ -1,5 +1,6 @@
 
 import math
+import tokens
 
 
 class Clause:
@@ -259,6 +260,15 @@ class Parser:
 
 
             i += 1
+
+        for clause in all_clauses:
+            for i in range(len(clause.content)):
+                if "#" in clause.content[i]:
+                    typeval = clause.content[i][clause.content[i].index("(")+1:]
+                    new_token = tokens.VariableToken(clause.content[i], "", 0, "vartoken", tokens.TypeToken(tokens.Token("#TYPE", "", 0), "", 0, [tokens.Token(f"{typeval}", "", 0)]))
+                else:
+                    new_token = tokens.Token(clause.content[i], "", 0)
+                clause.content[i] = new_token
 
         print(all_clauses)
         for clause in all_clauses:
