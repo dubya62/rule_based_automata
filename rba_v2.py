@@ -12,15 +12,17 @@ class Clause:
         self.replacement:Clause = None
         self.metric:float = 0.0
         self.internal_variables = []
+        self.external_variables = []
 
 class Node:
     """
     A single node for the graph.
     Allows following the graph to match strings
     """
-    def __init__(self, replacement=None):
+    def __init__(self, replacement=None, clause=None):
         self.children = {}
         self.replacement = replacement
+        self.clause = clause
 
 
 class Graph:
@@ -73,6 +75,7 @@ class Graph:
                 if i == len(clause.content)-1:
                     print(f"Gave node a replacement of {clause.replacement}")
                     new_node.replacement = clause.replacement
+                    new_node.clause = clause
 
                 current_node.children[x] = new_node
                 current_node = new_node
@@ -132,6 +135,8 @@ class Graph:
                     print(f"Replacement found: {matched_node.replacement.content}")
                     
                     replacement = [x for x in matched_node.replacement.content]
+
+                    # handle internal variables
                     print("Replacement variables")
                     print(matched_node.replacement.internal_variables)
                     varmap = {}
@@ -150,6 +155,32 @@ class Graph:
                         print(f"Replacement type ({replacement[x]}) ({type(replacement[x])}): {the_type}")
                         replacement[x].token = f"#{varmap[the_var]}"
                         # replacement[x] = tokens_def.VariableToken(tokens_def.Token("#" + str(varmap[the_var]), "", 0), "", 0, tokens_def.Token("vartoken", "", 0), tokens_def.TypeToken(tokens_def.Token("#TYPE", "", 0), "", 0, the_type))
+
+
+                    # handle external variables
+                    external_varmap = {}
+                    for x in range(len(matched_node.clause.content)):
+                        external_var = matched_node.clause.external_variables[x]
+                        if external_var == -1:
+                            continue
+
+                        if external_var not in external_varmap:
+                            print(f"Added external var ${external_var} = {tokens[i+x]}")
+                            external_varmap[external_var] = tokens[i+x]
+
+
+                    for x in range(len(replacement)):
+                        external_var = matched_node.replacement.external_variables[x]
+                        if external_var == -1:
+                            continue
+
+                        if external_var not in external_varmap:
+                            print(f"Found variable ${external_var} that is not in the original representation... Cannot replace")
+                            return False, varnum
+
+                        replacement[x].token = external_varmap[external_var]
+                        print(f"Replaced external var {external_var} with {replacement[x].token}")
+
 
                     tokens = tokens[:i] + replacement + tokens[j:]
                     print(f"Tokens after replacement: {tokens}")
@@ -309,6 +340,17 @@ class Parser:
                     new_token = tokens_def.Token(clause.content[i], "", 0)
                 print("Made type aware token")
                 clause.content[i] = new_token
+
+
+        #handle external variables
+        for clause in all_clauses:
+            for i in range(len(clause.content)):
+                if "$" in clause.content[i]:
+                    dollar_index = clause.content[i].token.index("$")
+                    clause.external_variables.append(int(clause.content[i][dollar_index+1:]))
+                    clause.content[i].token = clause.content[i].token[:dollar_index]
+                else:
+                    clause.external_variables.append(-1)
 
 
         # handle internal variables
