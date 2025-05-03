@@ -1,6 +1,6 @@
 
 import math
-import tokens
+import tokens as tokens_def
 
 
 class Clause:
@@ -11,6 +11,7 @@ class Clause:
         self.content:list[str] = []
         self.replacement:Clause = None
         self.metric:float = 0.0
+        self.internal_variables = []
 
 class Node:
     """
@@ -62,12 +63,12 @@ class Graph:
         # add required nodes
         current_node = self.head
         for i, x in enumerate(clause.content):
-            print(f"--- : {x} ")
+            #print(f"--- : {x} ")
             if x in current_node.children:
-                print("Already exists")
+                #print("Already exists")
                 current_node = current_node.children[x]
             else:
-                print("Creating new node")
+                #print("Creating new node")
                 new_node = Node()
                 if i == len(clause.content)-1:
                     print(f"Gave node a replacement of {clause.replacement}")
@@ -78,7 +79,7 @@ class Graph:
 
 
     # optimize the graph 
-    def execute(self, tokens:list[str], replace=True):
+    def execute(self, tokens:list[str], replace=True, varnum=0):
         """
         Execute the current graph on a list of strings
         Replaces matched token sequences with the replacement string 
@@ -94,14 +95,24 @@ class Graph:
             
                 # 3. follow down the tree as far as possible, consuming as many tokens as possible 
                 def match_forward(node, token_index, path):
+                    print(f"Attempting match")
                     if token_index >= len(tokens):
+                        print("Ran out of input tokens")
                         return path
                     if tokens[token_index] in node.children:
+                        print(f"Token {tokens[token_index]} matched in {node.children}")
                         next_node = node.children[tokens[token_index]]
                         path.append(next_node)
                         return match_forward(next_node, token_index + 1, path)
+                    if "#" in node.children:
+                        print(f"Token {tokens[token_index]} matched in {node.children} with #")
+                        next_node = node.children["#"]
+                        path.append(next_node)
+                        return match_forward(next_node, token_index + 1, path)
+                    print(f"No matching node in graph {tokens[token_index]}, {node.children}")
                     return path
                 
+                print("Attempting Match")
                 # start matching/tracking path from head node 
                 path = [self.head]
                 path = match_forward(self.head, i, path)
@@ -120,7 +131,26 @@ class Graph:
                     j = i + len(path) - 1
                     print(f"Replacement found: {matched_node.replacement.content}")
                     
-                    replacement = matched_node.replacement.content
+                    replacement = [x for x in matched_node.replacement.content]
+                    print("Replacement variables")
+                    print(matched_node.replacement.internal_variables)
+                    varmap = {}
+                    for x in range(len(replacement)):
+                        the_var = matched_node.replacement.internal_variables[x]
+                        print(f"varmap = {varmap}")
+                        print(f"var[{x}] = {the_var}")
+                        if the_var == -1:
+                            continue
+
+                        if the_var not in varmap:
+                            varmap[the_var] = varnum
+                            varnum += 1
+
+                        the_type = replacement[x].type if hasattr(replacement[x], "type") else []
+                        print(f"Replacement type ({replacement[x]}) ({type(replacement[x])}): {the_type}")
+                        replacement[x].token = f"#{varmap[the_var]}"
+                        # replacement[x] = tokens_def.VariableToken(tokens_def.Token("#" + str(varmap[the_var]), "", 0), "", 0, tokens_def.Token("vartoken", "", 0), tokens_def.TypeToken(tokens_def.Token("#TYPE", "", 0), "", 0, the_type))
+
                     tokens = tokens[:i] + replacement + tokens[j:]
                     print(f"Tokens after replacement: {tokens}")
                     
@@ -128,7 +158,7 @@ class Graph:
                     i = i + len(replacement)
                     modified = True 
                     if not replace:
-                        return True
+                        return True, varnum
                     
                 else: 
                     print("No replacement found, moving to next token")
@@ -140,9 +170,9 @@ class Graph:
                 break
 
         if not replace:
-            return False
+            return False, varnum
             
-        return tokens
+        return tokens_def.Tokens(tokens), varnum
 
 
 
@@ -261,6 +291,7 @@ class Parser:
 
             i += 1
 
+        # handle type awareness
         for clause in all_clauses:
             for i in range(len(clause.content)):
                 if "#" in clause.content[i]:
@@ -273,10 +304,22 @@ class Parser:
                             typeval += tok
                     else:
                         typeval = ""
-                    new_token = tokens.VariableToken(clause.content[i], "", 0, "vartoken", tokens.TypeToken(tokens.Token("#TYPE", "", 0), "", 0, [tokens.Token(f"{typeval}", "", 0)]))
+                    new_token = tokens_def.VariableToken(clause.content[i], "", 0, "vartoken", tokens_def.TypeToken(tokens_def.Token("#TYPE", "", 0), "", 0, [tokens_def.Token(f"{typeval}", "", 0)]))
                 else:
-                    new_token = tokens.Token(clause.content[i], "", 0)
+                    new_token = tokens_def.Token(clause.content[i], "", 0)
+                print("Made type aware token")
                 clause.content[i] = new_token
+
+
+        # handle internal variables
+        for clause in all_clauses:
+            for i in range(len(clause.content)):
+                if "#" in clause.content[i]:
+                    clause.internal_variables.append(int(clause.content[i][1:]))
+                    clause.content[i].token = "#"
+                else:
+                    clause.internal_variables.append(-1)
+
 
         print(all_clauses)
         for clause in all_clauses:
@@ -295,7 +338,7 @@ if __name__ == "__main__":
     print("\nTesting graph...")
     tokens = ["a", "b", "c", "d", "e", "chill", "guy"]
     print("Tokens before execution: ", tokens) 
-    result = parser.graph.execute(tokens)
+    result, varnum = parser.graph.execute(tokens)
     print("Tokens after execution: ", result)
     
     # test the circular rule 
